@@ -1,7 +1,7 @@
 # Regularized Multidimensional Item Response Theory Modeling in a High-dimensional Setting
 # All Functions
 
-# Author: Travis Yang
+# Author: ***
 # Last modified: 03-12-2025
 
 #################################################
