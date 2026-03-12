@@ -41,7 +41,7 @@ result <- HiMMIRT(Y,K,max_iter=200,tol=1e-4,rotation=T,orthogonal=TRUE)
 ## hard thresholding
 result$A[abs(result$A)<.4] <- 0
 
-A_best <- ref.perp(result$A,A_true) ## account for sign and column indeterminacy
+A_best <- ref.perp(result$A,A_true,result$Theta)$A_best ## account for sign and column indeterminacy
 
 # check sensitivity
 sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
@@ -92,7 +92,7 @@ picked_result <- result_list[[18]] # the best number may change
 Lambda <- ifelse(picked_result$A==0,0,1)
 best_result <- CHiMMIRT(Y,K,Lambda,Params,max_iter=200,orthogonal=F)
 
-A_best <- ref.perp(best_result$A,A_true)
+A_best <- ref.perp(best_result$A,A_true,best_result$Theta)$A_best
 
 # check sensitivity
 sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
@@ -121,21 +121,9 @@ system.time(
 )
 
 A_hat <- result$A
-A_best <- ref.perp(result$A,Data$A)
+A_best <- ref.perp(A_hat,Data$A,result$Theta)$A_best
 A_true <- Data$A
 
 sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
 spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
 loading_error <- sum((A_best-A_true)^2)/(J*K)
-
-Theta_hat <- result$Theta
-Theta_true <- Data$Theta
-
-Theta_best <- Theta_hat[,c(2,1,3)]
-Theta_best[,3] <- -Theta_best[,3]
-ability_error <- sum((Theta_best-Theta_true)^2)/(N*K)
-
-d_hat <- result$d
-
-
-
