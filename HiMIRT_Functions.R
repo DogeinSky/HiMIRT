@@ -2,7 +2,7 @@
 # All Functions
 
 # Author: ***
-# Last modified: 03-12-2025
+# Last modified: 12-03-2026
 
 #################################################
 #####-----Functions for generating data-----#####
@@ -64,7 +64,7 @@ simuMIRTData <- function(J,K,N,rho,A,d){
 #    A_hat: the estimated loading matrix
 #    A_true: the true loading matrix to align
 
-ref.perp <- function(A_hat,A_true){
+ref.perp <- function(A_hat,A_true,Theta_hat){
   K=ncol(A_hat)
   matrix_data=t(vapply(1:K, function(i){
     colSums(ifelse(A_hat[,i]!=0 & A_true!=0, 1,0))},
@@ -72,10 +72,12 @@ ref.perp <- function(A_hat,A_true){
   assignment <- solve_LSAP(t(matrix_data), maximum = TRUE)
   row_indices <- as.integer(assignment)
   A_best <- A_hat[,row_indices]
+  Theta_best <- Theta_hat[,row_indices]
   
   corsign <- sign(diag(cor(A_true, A_best)))
   A_best <- A_best %*% diag(corsign)
-  return(A_best)
+  Theta_best <- Theta_best %*% diag(corsign)
+  return(list(A_best=A_best,Theta_best=Theta_best))
 }
 
 ###################################################
@@ -400,21 +402,26 @@ standardiseMIRT <- function(Params,orthogonal=c(TRUE,FALSE),admm=c(TRUE,FALSE)){
       d=Params$d
       Theta=Params$Theta
       
-      Theta_mean <- colMeans(Theta)
       Theta_sd <- apply(Theta, 2, sd)
-      Params$Theta <- scale(Params$Theta)
-      Params$d <- drop(d+Theta_mean %*% A_tilde)
+      Theta <- t(t(Theta)/Theta_sd)
       Params$A_tilde <- A_tilde*Theta_sd
+      
+      Theta_mean <- colMeans(Theta)
+      Params$Theta <- scale(Theta)
+      Params$d <- drop(d+Theta_mean %*% A_tilde)
     } else{
       A=Params$A
       d=Params$d
       Theta=Params$Theta
       
-      Theta_mean <- colMeans(Theta)
       Theta_sd <- apply(Theta, 2, sd)
+      Theta <- t(t(Theta)/Theta_sd)
+      Params$A <- t(t(A)*Theta_sd)
+      
+      Theta_mean <- colMeans(Theta)
       Params$Theta <- scale(Params$Theta)
       Params$d <- drop(d+Theta_mean %*% t(A))
-      Params$A <- t(t(A)*Theta_sd)
+      
     }}
   
   return(Params)
@@ -468,6 +475,10 @@ lasso_HiMIRT <- function(Y,K,Params=NULL,max_iter,lambda,tol=1e-4,orthogonal,pro
     if (orthogonal) {
       svd_result <- svd(1/sqrt(N)*Z_D%*%t(Params$A_tilde))
       Params$Theta <- sqrt(N)*svd_result$u%*%t(svd_result$v)
+      
+      Theta_mean <- colMeans(Params$Theta)
+      Params$Theta <- scale(Params$Theta)
+      Params$d <- drop(Params$d+Theta_mean %*% Params$A_tilde)
     } else {
       Params$Theta <- Z_D%*%t(Params$A_tilde)%*%solve(Params$A_tilde%*%t(Params$A_tilde))
       
@@ -701,6 +712,10 @@ card_HiMIRT <- function(Y,K,Params=NULL,random_start=c(TRUE,FALSE),tol=1e-4,max_
       B=S%*%B_right
       Params$Theta=Z_D%*%B_right
       
+      Theta_mean <- colMeans(Params$Theta)
+      Params$Theta <- scale(Params$Theta)
+      Params$d <- drop(Params$d+Theta_mean %*% t(Params$A))
+      
       Params$A <- cardize(Params,B,kappaC)
     } else {
       Params$Theta <- Z_D%*%Params$A%*%solve(t(Params$A)%*%Params$A)
@@ -806,7 +821,7 @@ showResults <- function(result_list){
     prob_diff <- sum((plogis(d_hat+A_hat%*%t(Theta_hat))-
                         plogis(d_true+A_true%*%t(Theta_true)))^2)/(N*J)
     
-    A_best=ref.perp(A_hat,A_true)
+    A_best=ref.perp(A_hat,A_true,Theta_hat)$A_best
     
     sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
     spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
@@ -859,7 +874,7 @@ calResults <- function(result_list,Data,N,J,K){
     prob_diff <- sum((plogis(d_hat+A_hat%*%t(Theta_hat))-
                         plogis(d_true+A_true%*%t(Theta_true)))^2)/(N*J)
     
-    A_best=ref.perp(A_hat,A_true)
+    A_best=ref.perp(A_hat,A_true,Theta_hat)$A_best
     
     sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
     spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
