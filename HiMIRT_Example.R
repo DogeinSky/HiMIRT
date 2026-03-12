@@ -68,7 +68,7 @@ J=300;tau=10;N=J*tau;K=10
 
 A_true <- generate_A(J,K,zero_prob=.7,diag=F)
 d <- runif(J,-2,2)
-Data <- simuMIRTData(J,K,N,rho=0.3,zero_prob=0.7)
+Data <- simuMIRTData(J,K,N,rho=0.3,A_true,d)
 Y <- Data$Y
 
 ## Initialize by less accurate CJMLE with rotation
@@ -108,11 +108,11 @@ loading_error <- sum((A_best-A_true)^2)/(J*K)
 ################################
 
 
-J=300;tau=10;N=J*tau;K=10
+J=300;tau=10;N=J*tau;K=3
 
 A_true <- generate_A(J,K,zero_prob=.7,diag=F)
 d <- runif(J,-2,2)
-Data <- simuMIRTData(J,K,N,rho=0,zero_prob=0.7)
+Data <- simuMIRTData(J,K,N,rho=0,A_true,d)
 Y <- Data$Y
 
 system.time(
@@ -120,10 +120,22 @@ system.time(
                         orthogonal=T,kappaC=sum(Data$A!=0))
 )
 
+A_hat <- result$A
 A_best <- ref.perp(result$A,Data$A)
 A_true <- Data$A
 
 sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
 spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
 loading_error <- sum((A_best-A_true)^2)/(J*K)
+
+Theta_hat <- result$Theta
+Theta_true <- Data$Theta
+
+Theta_best <- Theta_hat[,c(2,1,3)]
+Theta_best[,3] <- -Theta_best[,3]
+ability_error <- sum((Theta_best-Theta_true)^2)/(N*K)
+
+d_hat <- result$d
+
+
 
