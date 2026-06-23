@@ -29,7 +29,7 @@ J=300;tau=10;N=J*tau;K=10
 
 A_true <- generate_A(J,K,zero_prob=.7,diag=F)
 d <- runif(J,-2,2)
-Data <- simuMIRTData(J,K,N,rho=0,A_true,d)
+Data <- simuMIRTData(J,K,N,rho=0,A_true,d) # Data contains both Y and true parameters
 # rho: correlation between factors (0 for orthogonal)
 # zero_prob: controls the proportion of zeros in the loading matrix
 Y <- Data$Y
@@ -44,9 +44,9 @@ result$A[abs(result$A)<.4] <- 0
 A_best <- ref.perp(result$A,A_true,result$Theta)$A_best ## account for sign and column indeterminacy
 
 # check sensitivity
-sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
+sens <- sum(A_best != 0 & A_true != 0) / sum(A_true != 0)
 # check specificity
-spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
+spec <- sum(A_best == 0 & A_true == 0) / sum(A_true == 0)
 
 View(A_best)
 View(A_true)
@@ -95,9 +95,9 @@ best_result <- CHiMMIRT(Y,K,Lambda,Params,max_iter=200,orthogonal=F)
 A_best <- ref.perp(best_result$A,A_true,best_result$Theta)$A_best
 
 # check sensitivity
-sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
+sens <- sum(A_best != 0 & A_true != 0) / sum(A_true != 0)
 # check specificity
-spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
+spec <- sum(A_best == 0 & A_true == 0) / sum(A_true == 0)
 # check loading error
 loading_error <- sum((A_best-A_true)^2)/(J*K)
 
@@ -124,6 +124,9 @@ A_hat <- result$A
 A_best <- ref.perp(A_hat,Data$A,result$Theta)$A_best
 A_true <- Data$A
 
-sens <- sum(ifelse(A_best!=0&A_true!=0, 1, 0))/sum(ifelse(A_true!=0,1,0))
-spec <- sum(ifelse(A_best==0&A_true==0, 1, 0))/sum(ifelse(A_true==0,1,0))
+# check sensitivity
+sens <- sum(A_best != 0 & A_true != 0) / sum(A_true != 0)
+# check specificity
+spec <- sum(A_best == 0 & A_true == 0) / sum(A_true == 0)
+# check loading error
 loading_error <- sum((A_best-A_true)^2)/(J*K)
